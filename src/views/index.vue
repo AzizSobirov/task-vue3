@@ -1,12 +1,10 @@
 <script lang="ts" setup>
-import User from "@/components/User.vue";
+import Header from "@/components/Header.vue";
 </script>
 
 <template>
-  <div class="w-full">
-    <div class="container">
-      <User />
-      <Canban />
-    </div>
+  <Header />
+  <div class="mt-3 p-5 w-full overflow-x-auto">
+    <Canban />
   </div>
 </template>
