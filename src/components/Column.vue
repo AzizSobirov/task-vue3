@@ -1,61 +1,64 @@
 <script lang="ts" setup>
-import { ref, reactive, defineProps, defineEmits } from "vue";
+import { ref, reactive, defineProps } from "vue";
+import TaskForm from "./TaskForm.vue";
+import { useTodosStore } from "@/stores/todos.store";
 import type { Column, Task } from "@/types";
 
 const props = defineProps<{
   data: Column;
 }>();
 
-const emit = defineEmits<{
-  editColumn: [id: number, name: string];
-  deleteColumn: [id: number];
-  createTask: [id: number, data: Task];
-  onDragStart: [event: DragEvent, taskId: number, columnId: number];
-  onDrop: [event: DragEvent, targetColumnId: number];
-}>();
+const store = useTodosStore();
 
+const columnDragging = ref<boolean>(false);
 const editColumnName = ref<boolean>(false);
+const formActive = ref<boolean>(false);
 
-const task = reactive({
+const taskState = reactive({
   title: "",
   priority: "Low",
   complated: false,
   columnId: props.data.id,
 });
-const formActive = ref<boolean>(false);
+
+const editTask = reactive({
+  title: "",
+  priority: "Low",
+});
 
 const changeColumnName = (input: HTMLInputElement): void => {
-  emit("editColumn", props.data.id, input.value);
+  store.editColumn(props.data.id, input.value);
   editColumnName.value = false;
   input.blur();
 };
 
-const createTask = (): void => {
-  emit("createTask", props.data.id, {
-    ...task,
-    id: Math.floor(Math.random() * 1000),
-  } as Task);
-
-  clearForm();
-};
-
 const clearForm = (): void => {
-  task.title = "";
-  task.priority = "Low";
+  taskState.title = "";
+  taskState.priority = "Low";
+  taskState.complated = false;
   formActive.value = false;
 };
 </script>
 
 <template>
   <div
-    class="w-72 flex flex-col items-start gap-3"
-    @dragover="(e:Event) => e.preventDefault()"
-    @drop="emit('onDrop', $event, data.id)"
+    class="w-72 flex flex-col items-start gap-2"
+    :class="{
+      'border border-primary-500 border-dashed rounded-xl': columnDragging,
+    }"
+    @dragover.prevent="() => (columnDragging = true)"
+    @dragleave="columnDragging = false"
+    @drop="
+      ($event) => {
+        store.onDrop($event, data.id);
+        columnDragging = false;
+      }
+    "
   >
     <!-- Header -->
     <div class="w-full flex items-center justify-between gap-3">
       <input
-        class="p-1 text-lg font-bold grow outline-none focus:border rounded-sm"
+        class="p-1 text-lg font-semibold grow outline-none focus:border rounded-sm"
         :value="data.name"
         :readonly="!editColumnName"
         @click="editColumnName = true"
@@ -66,7 +69,7 @@ const clearForm = (): void => {
         icon="i-lucide-trash"
         color="error"
         variant="ghost"
-        @click="emit('deleteColumn', data.id)"
+        @click="store.deleteColumn(data.id)"
       />
     </div>
 
@@ -76,32 +79,76 @@ const clearForm = (): void => {
         v-for="task in data.tasks"
         :key="task.id"
         class="p-3 w-full bg-slate-100 dark:bg-slate-800 rounded-xl border border-transparent hover:border-primary-500 group"
+        :class="{ '!p-0': task.editing }"
         draggable="true"
-        @dragstart="emit('onDragStart', $event, task.id, task.columnId)"
+        @dragstart="store.onDragStart($event, task.id, task.columnId)"
       >
-        <div class="w-full flex items-center justify-start">
-          <div
-            class="w-0 overflow-hidden transition-all group-hover:w-[25px]"
-            :class="{ 'w-[25px]': task.complated }"
-          >
-            <UCheckbox v-model="task.complated" />
+        <template v-if="!task.editing">
+          <div class="w-full flex items-center justify-start">
+            <div
+              class="w-0 overflow-hidden transition-all group-hover:w-[25px]"
+              :class="{ 'w-[25px]': task.complated }"
+            >
+              <UCheckbox v-model="task.complated" />
+            </div>
+
+            <span class="font-medium">{{ task.title }}</span>
+
+            <UButton
+              class="ml-auto opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+              icon="i-lucide-edit"
+              color="primary"
+              variant="ghost"
+              size="sm"
+              @click="
+                () => {
+                  task.editing = true;
+                  editTask.title = task.title;
+                  editTask.priority = task.priority;
+                }
+              "
+            />
+
+            <UButton
+              class="ml-0.5 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+              icon="i-lucide-trash"
+              color="error"
+              variant="ghost"
+              size="sm"
+              @click="store.deleteTask(data.id, task.id)"
+            />
           </div>
 
-          <span class="font-medium">{{ task.title }}</span>
-        </div>
-
-        <div class="w-full">
-          <UBadge
-            v-if="task.priority != 'Low'"
-            class="mt-2"
-            :color="task.priority == 'Medium' ? 'warning' : 'error'"
-          >
-            {{ task.priority }}
-          </UBadge>
-        </div>
+          <div class="w-full">
+            <UBadge
+              v-if="task.priority != 'Low'"
+              class="mt-2"
+              :color="task.priority == 'Medium' ? 'warning' : 'error'"
+            >
+              {{ task.priority }}
+            </UBadge>
+          </div>
+        </template>
+        <template v-else>
+          <TaskForm
+            v-model="editTask"
+            v-model:open="task.editing"
+            mode="edit"
+            @submit="
+              () => {
+                store.editTask(data.id, {
+                  ...task,
+                  title: editTask.title,
+                  priority: editTask.priority,
+                } as Task);
+                task.editing = false;
+              }
+            "
+          />
+        </template>
       </div>
 
-      <!-- Create task -->
+      <!-- Add task -->
       <div
         class="min-w-72 w-72 border border-dashed border-slate-300 dark:border-slate-500 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700"
         :class="{
@@ -114,42 +161,20 @@ const clearForm = (): void => {
           @click="formActive = true"
         >
           <UIcon name="i-lucide-plus" class="size-4" />
-          <span class="text-sm font-medium">Create task</span>
+          <span class="text-sm font-medium">Add task</span>
         </div>
 
-        <form v-else class="p-3" @submit.prevent="createTask">
-          <UFormField label="Title">
-            <UTextarea
-              class="w-full"
-              placeholder="Task title"
-              v-model="task.title"
-              required
-            />
-          </UFormField>
-
-          <URadioGroup
-            class="mt-2"
-            orientation="horizontal"
-            legend="Priority"
-            :default-value="task.priority"
-            :items="['Low', 'Medium', 'High']"
-            @update:model-value="task.priority = $event"
-          />
-
-          <div class="mt-3 w-full grid grid-cols-2 gap-2">
-            <UButton
-              class="w-full justify-center"
-              variant="ghost"
-              @click="clearForm"
-            >
-              Cancel
-            </UButton>
-
-            <UButton class="w-full justify-center" type="submit">
-              Create
-            </UButton>
-          </div>
-        </form>
+        <TaskForm
+          v-else
+          v-model="taskState"
+          v-model:open="formActive"
+          @submit="
+            () => {
+              store.createTask(data.id, taskState as Task);
+              clearForm();
+            }
+          "
+        />
       </div>
     </div>
   </div>
