@@ -174,51 +174,44 @@ export const useTodosStore = defineStore("todos-store", () => {
     }
   };
 
-  let draggedTaskId: number | null = null;
-  let taskColumnId: number | null = null;
+  const insertAboveTask = (zone: HTMLElement, mouseY: number) => {
+    const els = zone.querySelectorAll(".drop-task:not(.is-dragging)");
 
-  const onDragStart = (event: DragEvent, taskId: number, columnId: number) => {
-    draggedTaskId = taskId;
-    taskColumnId = columnId;
+    let closestTask = null;
+    let closestOffset = Number.NEGATIVE_INFINITY;
 
-    event.dataTransfer?.setData("taskId", taskId.toString());
+    els.forEach((task) => {
+      const { top } = task.getBoundingClientRect();
+      const offset = mouseY - top;
+
+      if (offset < 0 && offset > closestOffset) {
+        closestOffset = offset;
+        closestTask = task;
+      }
+    });
+
+    return closestTask;
   };
 
-  const onDrop = (event: DragEvent, targetColumnId: number) => {
+  // let draggedTaskId: number | null = null;
+  // let taskColumnId: number | null = null;
+  const onDragStart = (event: DragEvent, taskId: number, columnId: number) => {
+    // draggedTaskId = taskId;
+    // taskColumnId = columnId;
+  };
+
+  const onDragOver = (event: DragEvent, columnId: number) => {
     event.preventDefault();
 
-    if (!draggedTaskId) return;
+    const zone = event.currentTarget as HTMLElement;
 
-    let currentBoard = getBoard();
+    const bottomTask = insertAboveTask(zone, event.clientY);
+    const curTask = document.querySelector(".is-dragging") as HTMLElement;
 
-    if (currentBoard) {
-      const column = currentBoard.columns.find(
-        (column) => column.id === taskColumnId
-      );
-      const task = column?.tasks.find((task) => task.id === draggedTaskId);
-      const taskColumn = currentBoard.columns.find(
-        (column) => column.id === task?.columnId
-      );
-
-      if (targetColumnId == taskColumn?.id) return;
-
-      if (column && task && taskColumn) {
-        const targetColumn = currentBoard.columns.find(
-          (column) => column.id === targetColumnId
-        );
-
-        targetColumn?.tasks.push({
-          ...task,
-          columnId: targetColumnId,
-        });
-
-        taskColumn.tasks = taskColumn.tasks.filter(
-          (task) => task.id !== draggedTaskId
-        );
-
-        draggedTaskId = null;
-        taskColumnId = null;
-      }
+    if (!bottomTask) {
+      zone.appendChild(curTask);
+    } else {
+      zone.insertBefore(curTask, bottomTask);
     }
   };
 
@@ -232,6 +225,6 @@ export const useTodosStore = defineStore("todos-store", () => {
     editTask,
     deleteTask,
     onDragStart,
-    onDrop,
+    onDragOver,
   };
 });

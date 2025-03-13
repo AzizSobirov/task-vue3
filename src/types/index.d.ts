@@ -17,4 +17,5 @@ export interface Task {
   columnId: number;
   complated: boolean;
   editing?: boolean;
+  dragging?: boolean;
 }

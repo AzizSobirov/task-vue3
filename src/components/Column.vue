@@ -10,7 +10,6 @@ const props = defineProps<{
 
 const store = useTodosStore();
 
-const columnDragging = ref<boolean>(false);
 const editColumnName = ref<boolean>(false);
 const formActive = ref<boolean>(false);
 
@@ -41,20 +40,7 @@ const clearForm = (): void => {
 </script>
 
 <template>
-  <div
-    class="w-72 flex flex-col items-start gap-2"
-    :class="{
-      'border border-primary-500 border-dashed rounded-xl': columnDragging,
-    }"
-    @dragover.prevent="() => (columnDragging = true)"
-    @dragleave="columnDragging = false"
-    @drop="
-      ($event) => {
-        store.onDrop($event, data.id);
-        columnDragging = false;
-      }
-    "
-  >
+  <div class="w-72 flex flex-col items-start gap-2 drop-zone">
     <!-- Header -->
     <div class="w-full flex items-center justify-between gap-3">
       <input
@@ -74,14 +60,22 @@ const clearForm = (): void => {
     </div>
 
     <!-- Tasks -->
-    <div class="w-full flex flex-col gap-2">
+    <div
+      class="pt-2 w-full flex flex-col gap-2"
+      @dragover="store.onDragOver($event, data.id)"
+    >
       <div
         v-for="task in data.tasks"
         :key="task.id"
-        class="p-3 w-full bg-slate-100 dark:bg-slate-800 rounded-xl border border-transparent hover:border-primary-500 group"
-        :class="{ '!p-0': task.editing }"
+        class="p-3 w-full bg-slate-100 dark:bg-slate-800 rounded-xl border border-transparent hover:border-primary-500 group drop-task"
+        :class="{ '!p-0': task.editing, 'blur-xs is-dragging': task.dragging }"
         draggable="true"
-        @dragstart="store.onDragStart($event, task.id, task.columnId)"
+        :data-task-id="task.id"
+        @dragstart="($event: DragEvent) => {
+          store.onDragStart($event, task.id, task.columnId)
+          task.dragging = true
+        }"
+        @dragend="() => (task.dragging = false)"
       >
         <template v-if="!task.editing">
           <div class="w-full flex items-center justify-start">
@@ -147,35 +141,35 @@ const clearForm = (): void => {
           />
         </template>
       </div>
+    </div>
 
-      <!-- Add task -->
+    <!-- Add task -->
+    <div
+      class="min-w-72 w-72 border border-dashed border-slate-300 dark:border-slate-500 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700"
+      :class="{
+        '!bg-transparent border-solid ': formActive,
+      }"
+    >
       <div
-        class="min-w-72 w-72 border border-dashed border-slate-300 dark:border-slate-500 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700"
-        :class="{
-          '!bg-transparent border-solid ': formActive,
-        }"
+        v-if="!formActive"
+        class="p-3 w-full flex items-center justify-center gap-2"
+        @click="formActive = true"
       >
-        <div
-          v-if="!formActive"
-          class="p-3 w-full flex items-center justify-center gap-2"
-          @click="formActive = true"
-        >
-          <UIcon name="i-lucide-plus" class="size-4" />
-          <span class="text-sm font-medium">Add task</span>
-        </div>
+        <UIcon name="i-lucide-plus" class="size-4" />
+        <span class="text-sm font-medium">Add task</span>
+      </div>
 
-        <TaskForm
-          v-else
-          v-model="taskState"
-          v-model:open="formActive"
-          @submit="
+      <TaskForm
+        v-else
+        v-model="taskState"
+        v-model:open="formActive"
+        @submit="
             () => {
               store.createTask(data.id, taskState as Task);
               clearForm();
             }
           "
-        />
-      </div>
+      />
     </div>
   </div>
 </template>

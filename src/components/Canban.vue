@@ -29,7 +29,7 @@ const formActive = ref<boolean>(false);
         @click="formActive = true"
       >
         <UIcon name="i-lucide-plus" class="size-4" />
-        <span class="text-sm font-medium">Add another list</span>
+        <span class="text-sm font-medium">Add list</span>
       </div>
 
       <form
@@ -72,7 +72,7 @@ const formActive = ref<boolean>(false);
     </div>
   </div>
 
-  <div v-else class="w-full h-full flex items-center justify-center">
+  <div v-else class="w-full flex items-center justify-start">
     <div class="text-2xl font-bold">No board selected</div>
   </div>
 </template>

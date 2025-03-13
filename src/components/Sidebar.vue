@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { useRouter } from "vue-router";
-import { useStore } from "@/stores/index.store";
+import { useStore } from "@/stores/user.store";
 import { useTodosStore } from "@/stores/todos.store";
 import { useColorMode } from "@vueuse/core";
 

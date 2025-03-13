@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { reactive } from "vue";
 import * as v from "valibot";
-import { useStore } from "@/stores/index.store";
+import { useStore } from "@/stores/user.store";
 import type { FormSubmitEvent } from "@nuxt/ui";
 
 const store = useStore();

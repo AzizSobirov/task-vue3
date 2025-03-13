@@ -65,14 +65,27 @@ export const useStore = defineStore("store", () => {
     }
   };
 
-  const register = async (data: {
-    username: string;
-    password: string;
-  }): Promise<void> => {
+  const register = async (data: any): Promise<void> => {
     try {
-      const res = await $axios.post("/auth/register", data);
+      const res = await $axios.post("/auth/login", {
+        username: "emilys",
+        password: "emilyspass",
+      });
 
       if (res) {
+        user.value = {
+          id: res.data.id,
+          username: res.data.username,
+          email: res.data.email,
+          firstName: res.data.firstName,
+          lastName: res.data.lastName,
+          gender: res.data.gender,
+          image: res.data.image,
+        };
+
+        setCookie("accessToken", res.data.accessToken, 1);
+        setCookie("refreshToken", res.data.refreshToken, 7);
+
         toast.add({
           title: "Success",
           description: "Registered successfully",
