@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { computed } from "vue";
+import { computed, onMounted } from "vue";
 import { useRoute } from "vue-router";
 import { useTodosStore } from "@/stores/todos.store";
 
@@ -15,6 +15,10 @@ const getData = computed(() => {
   } else {
     return null;
   }
+});
+
+onMounted(() => {
+  todosStore.loadData();
 });
 </script>
 

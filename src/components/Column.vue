@@ -62,18 +62,21 @@ const clearForm = (): void => {
     <!-- Tasks -->
     <div
       class="pt-2 w-full flex flex-col gap-2"
-      @dragover="store.onDragOver($event, data.id)"
+      @dragover="store.onDragOver($event)"
+      @dragend="store.onDrop($event, data.id)"
     >
       <div
         v-for="task in data.tasks"
         :key="task.id"
         class="p-3 w-full bg-slate-100 dark:bg-slate-800 rounded-xl border border-transparent hover:border-primary-500 group drop-task"
-        :class="{ '!p-0': task.editing, 'blur-xs is-dragging': task.dragging }"
+        :class="{
+          '!p-0': task.editing,
+          'blur-xs is-dragging': task.dragging,
+        }"
         draggable="true"
-        :data-task-id="task.id"
         @dragstart="($event: DragEvent) => {
-          store.onDragStart($event, task.id, task.columnId)
           task.dragging = true
+          store.onDragStart($event, task.id, task.columnId)
         }"
         @dragend="() => (task.dragging = false)"
       >
@@ -83,7 +86,10 @@ const clearForm = (): void => {
               class="w-0 overflow-hidden transition-all group-hover:w-[25px]"
               :class="{ 'w-[25px]': task.complated }"
             >
-              <UCheckbox v-model="task.complated" />
+              <UCheckbox
+                v-model="task.complated"
+                @update:model-value="store.editTask(data.id, task)"
+              />
             </div>
 
             <span class="font-medium">{{ task.title }}</span>
@@ -130,12 +136,12 @@ const clearForm = (): void => {
             mode="edit"
             @submit="
               () => {
+                task.editing = false;
                 store.editTask(data.id, {
                   ...task,
                   title: editTask.title,
                   priority: editTask.priority,
                 } as Task);
-                task.editing = false;
               }
             "
           />
